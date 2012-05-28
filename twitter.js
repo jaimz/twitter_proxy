@@ -71,12 +71,12 @@
       if (tag.length < 2)
         return;
       
-      if (this._tag_collection.hasOwnProperty(tag))
-        self._tag_collection[tag] = this._tag_collection[tag] + 1;
+      if (self._tag_collection.hasOwnProperty(tag))
+        self._tag_collection[tag] = self._tag_collection[tag] + 1;
       else
         self._tag_collection[tag] = 1;
       
-      if (_tag_id_map.hasOwnProperty(tag))
+      if (self._tag_id_map.hasOwnProperty(tag))
         self._tag_id_map[tag].push(id);
       else
         self._tag_id_map[tag] = [ id ];
@@ -85,8 +85,8 @@
 
     // Collect tags from the given item collection (usually a user's tiemline)
     var _collect_tags = function(self, items) {
-      self._tag_collection = null;
-      self._tag_id_map = null;
+      self._tag_collection = {};
+      self._tag_id_map = {};
 
       if (!items || !items.length)
         return;
@@ -116,7 +116,7 @@
             curr.push(tags[idx][0]);
           } else {
             if (curr.length > 0) {
-              _add_tag_to_collection(curr.join(' '), items[ctr].id_str);
+              _add_tag_to_collection(self, curr.join(' '), items[ctr].id_str);
               curr = [];
             }
           }
@@ -311,6 +311,16 @@
       
       _construct_html(item, sorted);
     };
+    
+    // Convert the random Ruby string that Twitter gives us into a
+    // sensible date
+    var _sanitise_date = function(item) {
+      if (item.hasOwnProperty('created_at') === false)
+        return;
+      
+      var t_date = item.created_at;
+      item._j_created_at = new Date(t_date).toJSON();
+    };
 
     
     // Called when we have issued a new tweet
@@ -342,6 +352,7 @@
       var len = timeline.length;
       for (var ctr = 0; ctr < len; ++ctr) {
         _process_entities(timeline[ctr]);
+        _sanitise_date(timeline[ctr]);
       }
       
 
@@ -357,7 +368,7 @@
       this._view_model.Home.splice.apply(this._view_model.Home, timeline);
     
 
-      _collect_tags(timeline);
+      _collect_tags(this, timeline);
       var entities = J.SortObject(this._tag_collection);
       this._view_model.Entities(entities);
       this._view_model.EntityIds(this._tag_id_map);
